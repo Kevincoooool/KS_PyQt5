@@ -20,32 +20,58 @@ class STM32F103C8(object):
         self.flash = Flash(self.dap, STM32F103C8_flash_algo)
 
     def sect_erase(self, addr, size):
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '开始擦除')
+        time_start = int(round(time.time() * 1000))
         self.flash.Init(0, 0, 1)
-        for i in range(addr // self.SECT_SIZE, (addr + size + (self.SECT_SIZE - 1)) // self.SECT_SIZE):
+        for i in range( addr// self.SECT_SIZE, (addr + size + (self.SECT_SIZE - 1)) // self.SECT_SIZE):
             self.flash.EraseSector(self.SECT_SIZE * i)
+            progress = (int)(self.SECT_SIZE * i / size*100 )
+            globalvar.set_value('progress', progress)
+
+        time_finish = int(round(time.time() * 1000))
         self.flash.UnInit(1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '擦除成功')
+        time.sleep(0.1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
 
     def chip_write(self, addr, data):
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', '开始擦除')
+        time_start = int(round(time.time() * 1000))
         self.sect_erase(addr, len(data))
+        time_finish = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "擦除成功")
+        time.sleep(0.1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
         self.flash.Init(0, 0, 2)
+        time_start = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录中...")
-        for i in range(len(data)//self.PAGE_SIZE):
-            self.flash.ProgramPage(0x08000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
-            progress = (int)(self.PAGE_SIZE * i / len(data)*100)
-            globalvar.set_value('progress',progress)
-
+        for i in range(len(data) // self.PAGE_SIZE):
+            self.flash.ProgramPage(0x08000000 + addr + self.PAGE_SIZE * i,
+                                   data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])
+            progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
+            globalvar.set_value('progress', progress)
+        time_finish = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录完成！！")
+        time.sleep(0.01)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "耗时：" + str((time_finish - time_start) / 1000) + "  S")
+        time.sleep(0.01)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录速度：" + str(len(data) / (time_finish - time_start)) + "  KB/s")
+
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
         data = self.dap.read_memory_block8(0x08000000 + addr, size)
-        
+
         buff.extend(data)
 
 
@@ -56,13 +82,13 @@ class STM32F103RC(STM32F103C8):
 
     def __init__(self, dap):
         super(STM32F103RC, self).__init__(dap)
-        
+
         self.flash = Flash(self.dap, STM32F103RC_flash_algo)
 
 
 STM32F103C8_flash_algo = {
-    'load_address' : 0x20000000,
-    'instructions' : [
+    'load_address': 0x20000000,
+    'instructions': [
         0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,
         0x4603B510, 0x4C442000, 0x48446020, 0x48446060, 0x46206060, 0xF01069C0, 0xD1080F04, 0x5055F245,
         0x60204C40, 0x60602006, 0x70FFF640, 0x200060A0, 0x4601BD10, 0x69004838, 0x0080F040, 0x61104A36,
@@ -76,39 +102,38 @@ STM32F103C8_flash_algo = {
         0xCDEF89AB, 0x40003000, 0x00000000
     ],
 
-    'pc_Init'            : 0x20000021,
-    'pc_UnInit'          : 0x20000053,
-    'pc_EraseSector'     : 0x2000009F,
-    'pc_ProgramPage'     : 0x200000DD,
-    'pc_Verify'          : 0x12000001F,
-    'pc_EraseChip'       : 0x20000065,
-    'pc_BlankCheck'      : 0x12000001F,
-    'pc_Read'            : 0x12000001F,
-    
-    'static_base'        : 0x20000400,
-    'begin_data'         : 0x20000800,
-    'begin_stack'        : 0x20001000,
+    'pc_Init': 0x20000021,
+    'pc_UnInit': 0x20000053,
+    'pc_EraseSector': 0x2000009F,
+    'pc_ProgramPage': 0x200000DD,
+    'pc_Verify': 0x12000001F,
+    'pc_EraseChip': 0x20000065,
+    'pc_BlankCheck': 0x12000001F,
+    'pc_Read': 0x12000001F,
 
-    'analyzer_supported' : False,
+    'static_base': 0x20000400,
+    'begin_data': 0x20000800,
+    'begin_stack': 0x20001000,
+
+    'analyzer_supported': False,
 
     # Relative region addresses and sizes
-    'ro_start'           : 0x00000000,
-    'ro_size'            : 0x00000128,
-    'rw_start'           : 0x00000128,
-    'rw_size'            : 0x00000004,
-    'zi_start'           : 0x0000012C,
-    'zi_size'            : 0x00000000,
+    'ro_start': 0x00000000,
+    'ro_size': 0x00000128,
+    'rw_start': 0x00000128,
+    'rw_size': 0x00000004,
+    'zi_start': 0x0000012C,
+    'zi_size': 0x00000000,
 
     # Flash information
-    'flash_start'        : 0x08000000,
-    'flash_size'         : 0x00020000,
-    'flash_page_size'    : 0x00000400,
+    'flash_start': 0x08000000,
+    'flash_size': 0x00020000,
+    'flash_page_size': 0x00000400,
 }
 
-
-STM32F103RC_flash_algo = { 
-    'load_address' : 0x20000000,
-    'instructions' : [
+STM32F103RC_flash_algo = {
+    'load_address': 0x20000000,
+    'instructions': [
         0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,
         0x4603B510, 0x4C442000, 0x48446020, 0x48446060, 0x46206060, 0xF01069C0, 0xD1080F04, 0x5055F245,
         0x60204C40, 0x60602006, 0x70FFF640, 0x200060A0, 0x4601BD10, 0x69004838, 0x0080F040, 0x61104A36,
@@ -122,31 +147,31 @@ STM32F103RC_flash_algo = {
         0xCDEF89AB, 0x40003000, 0x00000000
     ],
 
-    'pc_Init'            : 0x20000021,
-    'pc_UnInit'          : 0x20000053,
-    'pc_EraseSector'     : 0x2000009F,
-    'pc_ProgramPage'     : 0x200000DD,
-    'pc_Verify'          : 0x12000001F,
-    'pc_EraseChip'       : 0x20000065,
-    'pc_BlankCheck'      : 0x12000001F,
-    'pc_Read'            : 0x12000001F,
-    
-    'static_base'        : 0x20000400,
-    'begin_data'         : 0x20000800,
-    'begin_stack'        : 0x20001000,
+    'pc_Init': 0x20000021,
+    'pc_UnInit': 0x20000053,
+    'pc_EraseSector': 0x2000009F,
+    'pc_ProgramPage': 0x200000DD,
+    'pc_Verify': 0x12000001F,
+    'pc_EraseChip': 0x20000065,
+    'pc_BlankCheck': 0x12000001F,
+    'pc_Read': 0x12000001F,
 
-    'analyzer_supported' : False,
+    'static_base': 0x20000400,
+    'begin_data': 0x20000800,
+    'begin_stack': 0x20001000,
+
+    'analyzer_supported': False,
 
     # Relative region addresses and sizes
-    'ro_start'           : 0x00000000,
-    'ro_size'            : 0x00000128,
-    'rw_start'           : 0x00000128,
-    'rw_size'            : 0x00000004,
-    'zi_start'           : 0x0000012C,
-    'zi_size'            : 0x00000000,
+    'ro_start': 0x00000000,
+    'ro_size': 0x00000128,
+    'rw_start': 0x00000128,
+    'rw_size': 0x00000004,
+    'zi_start': 0x0000012C,
+    'zi_size': 0x00000000,
 
     # Flash information
-    'flash_start'        : 0x08000000,
-    'flash_size'         : 0x00080000,
-    'flash_page_size'    : 0x00000400,
+    'flash_start': 0x08000000,
+    'flash_size': 0x00080000,
+    'flash_page_size': 0x00000400,
 }

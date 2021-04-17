@@ -63,6 +63,10 @@ class MCUProg(QWidget):
         self.tmrDAP.timeout.connect(self.on_tmrDAP_timeout)
         self.tmrDAP.start()
 
+        self.thread_progress = Worker()
+        self.thread_progress.progressBarValue.connect(self.copy_file)
+        self.thread_progress.InfoValue.connect(self.Info_tip)
+        self.thread_progress.start()
 
 
 
@@ -93,10 +97,9 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnErase_clicked(self):
-        # self.progressBar.setVisible(True)
+        self.mytextBrowser.clear()
         self.dap = self.openDAP()
         self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
-
         self.setEnabled(False)
         self.dev.sect_erase(self.addr, self.size)
         QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
@@ -119,18 +122,17 @@ class MCUProg(QWidget):
         self.setEnabled(False)
         if len(data) % self.dev.PAGE_SIZE:
             data += b'\xFF' * (self.dev.PAGE_SIZE - len(data) % self.dev.PAGE_SIZE)
+
         self.threadWrite = ThreadAsync(self.dev.chip_write, self.addr, data)
         self.threadWrite.taskFinished.connect(self.on_btnWrite_finished)
         self.threadWrite.start()
 
-        self.thread_progress = Worker()
-        self.thread_progress.progressBarValue.connect(self.copy_file)
-        self.thread_progress.InfoValue.connect(self.Info_tip)
-        self.thread_progress.start()
+
 
 
 
     def on_btnWrite_finished(self):
+
         self.progressBar.setVisible(True)
         self.dap.reset()
         self.daplink.close()
@@ -143,12 +145,11 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
+        self.mytextBrowser.clear()
         self.dap = self.openDAP()
         self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
 
         self.setEnabled(False)
-        self.prgInfo.setVisible(True)
-
         self.buff = []  # bytes 无法 extend，因此用 list
         self.threadRead = ThreadAsync(self.dev.chip_read, self.addr, self.size, self.buff)
         self.threadRead.taskFinished.connect(self.on_btnRead_finished)

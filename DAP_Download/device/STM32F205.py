@@ -1,4 +1,6 @@
+from . import globalvar
 from .flash import Flash
+
 
 class STM32F205RE(object):
     CHIP_CORE = 'Cortex-M3'
@@ -21,12 +23,22 @@ class STM32F205RE(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '开始擦除')
         self.sect_erase(addr, len(data))
-
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除成功")
         self.flash.Init(0, 0, 2)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录中...")
         for i in range(len(data) // self.PAGE_SIZE):
             self.flash.ProgramPage(0x08000000 + addr + self.PAGE_SIZE * i,
                                    data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])
+            progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
+            globalvar.set_value('progress', progress)
+
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录完成！！")
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
@@ -54,10 +66,10 @@ STM32F205RE_flash_algo = {
 
     'pc_Init': 0x2000003D,
     'pc_UnInit': 0x2000006B,
-    'pc_EraseSector': 0x200000A5,
-    'pc_ProgramPage': 0x200000F1,
+    'pc_EraseSector': 0x20000079,
+    'pc_ProgramPage': 0x200000A5,
     'pc_Verify': 0x12000001F,
-    'pc_EraseChip': 0x20000079,
+    'pc_EraseChip': 0x12000001F,
     'pc_BlankCheck': 0x12000001F,
     'pc_Read': 0x12000001F,
 
@@ -77,6 +89,6 @@ STM32F205RE_flash_algo = {
 
     # Flash information
     'flash_start': 0x08000000,
-    'flash_size': 0x00100000,
+    'flash_size': 0x00020000,
     'flash_page_size': 0x00000400,
 }

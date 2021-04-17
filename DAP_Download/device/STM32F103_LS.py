@@ -1,5 +1,6 @@
 import time
 
+from device import globalvar
 
 FLASH_KR = 0x40022004
 FLASH_SR = 0x4002200C
@@ -52,20 +53,32 @@ class STM32F103C8(object):
         self.lock()
 
     def page_write(self, addr, data):
+
         self.unlock()
         self.dap.write32(FLASH_CR, self.dap.read32(FLASH_CR) | FLASH_CR_PWRITE)
         for i in range(self.PAGE_SIZE//2):
             self.dap.write16(addr + i*2, data[i*2] | (data[i*2+1] << 8))
+
         self.wait_ready()
         self.dap.write32(FLASH_CR, self.dap.read32(FLASH_CR) &~FLASH_CR_PWRITE)
         self.lock()
+
+
     
     def chip_write(self, addr, data):
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '开始擦除')
         self.sect_erase(addr, len(data))
-
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除成功")
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录中...")
         for i in range(0, len(data)//self.PAGE_SIZE):
             self.page_write(0x08000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
-
+            progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
+            globalvar.set_value('progress', progress)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录完成！！")
     def chip_read(self, addr, size, buff):
         data = self.dap.read_memory_block8(addr, size)
 
