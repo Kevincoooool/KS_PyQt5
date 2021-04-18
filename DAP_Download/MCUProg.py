@@ -1,20 +1,19 @@
 #! python3
-import os
-import sys
 import collections
 import configparser
-import threading
+import os
+import sys
 import time
 
-from PyQt5 import QtCore, QtGui, uic, QtWidgets
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QThread, QByteArray
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QProgressBar
-
-from pyocd.probe import aggregator
-from pyocd.coresight import dap, ap, cortex_m
+from PyQt5 import QtCore, uic
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog
 
 import device
+import jlink
 from device import globalvar
+from pyocd.coresight import dap, ap, cortex_m
+from pyocd.probe import aggregator
 
 '''
 from MCUProg_UI import Ui_MCUProg
@@ -29,6 +28,7 @@ class MCUProg(QWidget, Ui_MCUProg):
 class Worker(QThread):
     progressBarValue = pyqtSignal(int)  # 更新进度条
     InfoValue = pyqtSignal(str)  # 更新进度条
+
     def __init__(self):
         super(Worker, self).__init__()
 
@@ -43,8 +43,6 @@ class Worker(QThread):
                 print(info_get)
                 globalvar.set_value('flag', 0)
                 self.InfoValue.emit(info_get)
-
-
 
 
 class MCUProg(QWidget):
@@ -67,19 +65,60 @@ class MCUProg(QWidget):
         self.thread_progress.progressBarValue.connect(self.copy_file)
         self.thread_progress.InfoValue.connect(self.Info_tip)
         self.thread_progress.start()
+
+        self.radioButton_DAP.setChecked(True)
+        self.radioButton_JLINK.setChecked(False)
+        self.hLayout_dll.setEnabled(False)
+        self.radioButton_DAP.toggled.connect(lambda: self.btnstate(self.radioButton_DAP))
+        self.radioButton_JLINK.toggled.connect(lambda: self.btnstate(self.radioButton_JLINK))
         globalvar.set_value('addr', 0x08000000)
+        globalvar.set_value('dap_or_jlink', 1)
         self.Address_Edit.textEdited[str].connect(lambda: self.onChange())
-        self.label_qq.setText(u'<a href="https://jq.qq.com/?_wv=1027&k=4VOgMtUj" style="color:#0000ff;"><b> QQ交流群 ： 554150925 </b></a>')
+        self.label_qq.setText(
+            u'<a href="https://jq.qq.com/?_wv=1027&k=4VOgMtUj" style="color:#0000ff;"><b> QQ交流群 ： 554150925 </b></a>')
         self.label_qq.setOpenExternalLinks(True)
 
-        self.label_tb.setText(u'<a href="https://shop110563242.taobao.com/?spm=2013.1.1000126.d21.40b7550eFERD4b" style="color:#0000ff;"><b> 酷世DIY 高速DAPLink 脱机下载器 迷你Jlink V9 OpenMV </b></a>')
+        self.label_tb.setText(
+            u'<a href="https://shop110563242.taobao.com/?spm=2013.1.1000126.d21.40b7550eFERD4b" style="color:#0000ff;"><b> 酷世DIY 高速DAPLink 脱机下载器 迷你Jlink V9 OpenMV </b></a>')
         self.label_tb.setOpenExternalLinks(True)
+
     def onChange(self):
         Address = self.Address_Edit.text()
-        globalvar.set_value('addr',Address)
+        globalvar.set_value('addr', Address)
         globalvar.set_value('flag', 1)
-        globalvar.set_value('info', "烧录地址已设置为:"+Address)
+        globalvar.set_value('info', "烧录地址已设置为:" + Address)
         print("addr:", Address)
+
+    def btnstate(self, btn):
+        # 输出按钮1与按钮2的状态，选中还是没选中
+        if btn.text() == 'DAPLINK':
+            if btn.isChecked() == True:
+                print(btn.text() + " is selected")
+                self.hLayout_dap.setEnabled(True)
+                self.hLayout_dll.setEnabled(False)
+                globalvar.set_value('dap_or_jlink', 1)
+                print(globalvar.get_value('dap_or_jlink'))
+            else:
+                print(btn.text() + " is deselected")
+                self.hLayout_dap.setEnabled(False)
+                self.hLayout_dll.setEnabled(True)
+                globalvar.set_value('dap_or_jlink', 0)
+                print(globalvar.get_value('dap_or_jlink'))
+
+
+        if btn.text() == "JLINK":
+            if btn.isChecked() == True:
+                print(btn.text() + " is selected")
+                self.hLayout_dll.setEnabled(True)
+                self.hLayout_dap.setEnabled(False)
+                globalvar.set_value('dap_or_jlink', 0)
+                print(globalvar.get_value('dap_or_jlink'))
+            else:
+                print(btn.text() + " is deselected")
+                self.hLayout_dap.setEnabled(True)
+                self.hLayout_dll.setEnabled(False)
+                globalvar.set_value('dap_or_jlink', 1)
+                print(globalvar.get_value('dap_or_jlink'))
 
     def copy_file(self, i):
         self.progressBar.setValue(i)
@@ -103,8 +142,15 @@ class MCUProg(QWidget):
 
         self.cmbMCU.addItems(device.Devices.keys())
         self.cmbMCU.setCurrentIndex(self.cmbMCU.findText(self.conf.get('globals', 'mcu')))
-
+        self.linDLL.setText(self.conf.get('globals', 'dllpath'))
         self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
+
+    @pyqtSlot()
+    def on_btnDLL_clicked(self):
+        dllpath, filter = QFileDialog.getOpenFileName(caption=u'JLink_x64.dll路径', filter=u'动态链接库 (*.dll)',
+                                                      directory=self.linDLL.text())
+        if dllpath:
+            self.linDLL.setText(dllpath)
 
     @pyqtSlot()
     def on_btnErase_clicked(self):
@@ -112,10 +158,16 @@ class MCUProg(QWidget):
         self.dap = self.openDAP()
         self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
         self.setEnabled(False)
-        self.dev.sect_erase(self.addr, self.size)
+        if self.radioButton_JLINK.isChecked():
+            self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+            self.dev.sect_erase(self.addr, self.size)
+        elif self.radioButton_DAP.isChecked() == True:
+            self.dev.sect_erase(self.addr, self.size)
+            self.dap.reset()
+            self.daplink.close()
+
         QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
-        self.dap.reset()
-        self.daplink.close()
         self.setEnabled(True)
 
     @pyqtSlot()
@@ -127,8 +179,12 @@ class MCUProg(QWidget):
         else:
             data = open(self.cmbHEX.currentText(), 'rb').read()
 
-        self.dap = self.openDAP()
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
+        if self.radioButton_JLINK.isChecked():
+            self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+        elif self.radioButton_DAP.isChecked() == True:
+            self.dap = self.openDAP()
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
 
         self.setEnabled(False)
         if len(data) % self.dev.PAGE_SIZE:
@@ -138,27 +194,28 @@ class MCUProg(QWidget):
         self.threadWrite.taskFinished.connect(self.on_btnWrite_finished)
         self.threadWrite.start()
 
-
-
-
-
     def on_btnWrite_finished(self):
+        if self.radioButton_JLINK.isChecked():
+            self.jlk.reset()
+        elif self.radioButton_DAP.isChecked() == True:
+            self.dap.reset()
+            self.daplink.close()
 
-        self.progressBar.setVisible(True)
-        self.dap.reset()
-        self.daplink.close()
         self.setEnabled(True)
-
         self.btnWrite.setEnabled(True)
         self.progressBar.setValue(100)
-
         QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
         self.mytextBrowser.clear()
-        self.dap = self.openDAP()
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
+
+        if self.radioButton_JLINK.isChecked():
+            self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+        elif self.radioButton_DAP.isChecked() == True:
+            self.dap = self.openDAP()
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
 
         self.setEnabled(False)
         self.buff = []  # bytes 无法 extend，因此用 list
@@ -171,9 +228,11 @@ class MCUProg(QWidget):
         if binpath:
             with open(binpath, 'wb') as f:
                 f.write(bytes(self.buff))
-
-        self.dap.reset()
-        self.daplink.close()
+        if self.radioButton_JLINK.isChecked():
+            self.jlk.reset()
+        elif self.radioButton_DAP.isChecked() == True:
+            self.dap.reset()
+            self.daplink.close()
 
         self.setEnabled(True)
 
@@ -218,7 +277,7 @@ class MCUProg(QWidget):
         dev = device.Devices[self.cmbMCU.currentText()]
 
         self.cmbAddr.clear()
-        #self.cmbSize.clear()
+        self.cmbSize.clear()
         for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
                 self.cmbAddr.addItem('%d K' % (dev.SECT_SIZE * i // 1024))
@@ -227,7 +286,6 @@ class MCUProg(QWidget):
 
         self.cmbAddr.setCurrentIndex(self.cmbAddr.findText(self.conf.get('globals', 'addr')))
         self.cmbSize.setCurrentIndex(self.cmbSize.findText(self.conf.get('globals', 'size')))
-
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):
@@ -241,6 +299,7 @@ class MCUProg(QWidget):
         self.conf.set('globals', 'mcu', self.cmbMCU.currentText())
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
+        self.conf.set('globals', 'dllpath', self.linDLL.text())
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
         self.conf.set('globals', 'hexpath', repr(list(collections.OrderedDict.fromkeys(hexpath))))  # 保留顺序去重

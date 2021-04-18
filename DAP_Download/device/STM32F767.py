@@ -1,5 +1,5 @@
 from . import globalvar
-from .flash import Flash
+from .flash_dap import Flash_DAP
 import time
 import datetime
 class STM32F767VI(object):
@@ -27,7 +27,7 @@ class STM32F767VI(object):
         
         self.dap = dap
 
-        self.flash = Flash(self.dap, STM32F767VI_flash_algo)
+        self.flash = Flash_DAP(self.dap, STM32F767VI_flash_algo)
 
     def sect_erase(self, addr, size):
         globalvar.set_value('flag', 1)

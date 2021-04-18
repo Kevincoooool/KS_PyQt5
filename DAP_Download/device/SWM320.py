@@ -1,4 +1,4 @@
-from .flash import Flash
+from .flash_dap import Flash_DAP
 
 
 class SWM320(object):
@@ -14,7 +14,7 @@ class SWM320(object):
         self.dap = dap
         self.dap.reset()
 
-        self.flash = Flash(self.dap, SWM320_flash_algo)
+        self.flash = Flash_DAP(self.dap, SWM320_flash_algo)
 
         self.dap.write32(0x40031000, 1)     # HRC select 20MHz
         self.dap.write32(0x40000000, 4)     # Core Clock select HRC

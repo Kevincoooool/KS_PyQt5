@@ -1,7 +1,11 @@
 from . import globalvar
-from .flash import Flash
+from .flash_dap import Flash_DAP
 import time
 import datetime
+
+from .flash_jlink import Flash_JLINK
+
+
 class STM32F405RG(object):
     CHIP_CORE = 'Cortex-M4'
 
@@ -22,12 +26,15 @@ class STM32F405RG(object):
             elif sect < 128*1024: sect +=  64*1024
             else:                 sect += 128*1024
 
-    def __init__(self, dap):
+    def __init__(self, dap,jlink):
         super(STM32F405RG, self).__init__()
-        
-        self.dap = dap
 
-        self.flash = Flash(self.dap, STM32F405RG_flash_algo)
+        if globalvar.get_value('dap_or_jlink'):
+            self.dap = dap
+            self.flash = Flash_DAP(self.dap, STM32F405RG_flash_algo)
+        else:
+            self.jlink = jlink
+            self.flash = Flash_JLINK(self.jlink, STM32F405RG_flash_algo)
 
     def sect_erase(self, addr, size):
         globalvar.set_value('flag', 1)
@@ -82,9 +89,12 @@ class STM32F405RG(object):
 
     def chip_read(self, addr, size, buff):
         flash_start = globalvar.get_value('addr')
-        data = self.dap.read_memory_block8(flash_start + addr, size)
-
-        buff.extend(data)
+        if globalvar.get_value('dap_or_jlink'):
+            data = self.dap.read_memory_block8(flash_start + addr, size)
+            buff.extend(data)
+        else:
+            c_char_Array = self.jlink.read_mem(flash_start + addr, size)
+            buff.extend(list(bytes(c_char_Array)))
 
 
 STM32F405RG_flash_algo = {

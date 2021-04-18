@@ -2,8 +2,8 @@ import time
 
 
 from . import globalvar
-from .flash import Flash
-
+from .flash_dap import Flash_DAP
+from .flash_jlink import Flash_JLINK
 
 class STM32F103C8(object):
     CHIP_CORE = 'Cortex-M3'
@@ -12,12 +12,14 @@ class STM32F103C8(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 64
 
-    def __init__(self, dap):
+    def __init__(self, dap,jlink):
         super(STM32F103C8, self).__init__()
-
-        self.dap = dap
-
-        self.flash = Flash(self.dap, STM32F103C8_flash_algo)
+        if globalvar.get_value('dap_or_jlink'):
+            self.dap = dap
+            self.flash = Flash_DAP(self.dap, STM32F103C8_flash_algo)
+        else:
+            self.jlink = jlink
+            self.flash = Flash_JLINK(self.jlink, STM32F103C8_flash_algo)
 
     def sect_erase(self, addr, size):
         globalvar.set_value('flag', 1)
@@ -72,9 +74,12 @@ class STM32F103C8(object):
 
     def chip_read(self, addr, size, buff):
         flash_start = globalvar.get_value('addr')
-        data = self.dap.read_memory_block8(flash_start + addr, size)
-
-        buff.extend(data)
+        if globalvar.get_value('dap_or_jlink'):
+            data = self.dap.read_memory_block8(flash_start + addr, size)
+            buff.extend(data)
+        else:
+            c_char_Array = self.jlink.read_mem(flash_start + addr, size)
+            buff.extend(list(bytes(c_char_Array)))
 
 
 class STM32F103RC(STM32F103C8):
@@ -82,11 +87,15 @@ class STM32F103RC(STM32F103C8):
     SECT_SIZE = 1024 * 2
     CHIP_SIZE = 1024 * 256
 
-    def __init__(self, dap):
-        super(STM32F103RC, self).__init__(dap)
+    def __init__(self, dap,jlink):
+        super(STM32F103RC, self).__init__()
 
-        self.flash = Flash(self.dap, STM32F103RC_flash_algo)
-
+        if globalvar.get_value('dap_or_jlink'):
+            self.dap = dap
+            self.flash = Flash_DAP(self.dap, STM32F103RC_flash_algo)
+        else:
+            self.jlink = jlink
+            self.flash = Flash_JLINK(self.jlink, STM32F103RC_flash_algo)
 
 STM32F103C8_flash_algo = {
     'load_address': 0x20000000,
