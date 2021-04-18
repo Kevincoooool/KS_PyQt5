@@ -37,13 +37,13 @@ class Worker(QThread):
             time.sleep(0.001)
             self.progressBarValue.emit(globalvar.get_value('progress'))  # 发送进度条的值 信号
             flag_get = globalvar.get_value('flag')
-            if flag_get == 1:
+            if flag_get:
                 print(flag_get)
                 info_get = globalvar.get_value('info')
                 print(info_get)
                 globalvar.set_value('flag', 0)
                 self.InfoValue.emit(info_get)
-                # time.sleep(1)
+
 
 
 
@@ -67,8 +67,19 @@ class MCUProg(QWidget):
         self.thread_progress.progressBarValue.connect(self.copy_file)
         self.thread_progress.InfoValue.connect(self.Info_tip)
         self.thread_progress.start()
+        globalvar.set_value('addr', 0x08000000)
+        self.Address_Edit.textEdited[str].connect(lambda: self.onChange())
+        self.label_qq.setText(u'<a href="https://jq.qq.com/?_wv=1027&k=4VOgMtUj" style="color:#0000ff;"><b> QQ交流群 ： 554150925 </b></a>')
+        self.label_qq.setOpenExternalLinks(True)
 
-
+        self.label_tb.setText(u'<a href="https://shop110563242.taobao.com/?spm=2013.1.1000126.d21.40b7550eFERD4b" style="color:#0000ff;"><b> 酷世DIY 高速DAPLink 脱机下载器 迷你Jlink V9 OpenMV </b></a>')
+        self.label_tb.setOpenExternalLinks(True)
+    def onChange(self):
+        Address = self.Address_Edit.text()
+        globalvar.set_value('addr',Address)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录地址已设置为:"+Address)
+        print("addr:", Address)
 
     def copy_file(self, i):
         self.progressBar.setValue(i)
@@ -207,7 +218,7 @@ class MCUProg(QWidget):
         dev = device.Devices[self.cmbMCU.currentText()]
 
         self.cmbAddr.clear()
-        self.cmbSize.clear()
+        #self.cmbSize.clear()
         for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
                 self.cmbAddr.addItem('%d K' % (dev.SECT_SIZE * i // 1024))
@@ -216,6 +227,7 @@ class MCUProg(QWidget):
 
         self.cmbAddr.setCurrentIndex(self.cmbAddr.findText(self.conf.get('globals', 'addr')))
         self.cmbSize.setCurrentIndex(self.cmbSize.findText(self.conf.get('globals', 'size')))
+
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):

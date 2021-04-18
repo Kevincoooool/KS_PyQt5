@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>532</width>
-    <height>256</height>
+    <width>727</width>
+    <height>279</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,19 +49,6 @@
       </widget>
      </item>
      <item>
-      <spacer name="hSpacer11">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="lblAddr">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -69,6 +56,20 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="text">
+        <string>烧录地址：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="Address_Edit">
+       <property name="text">
+        <string>0x08000000</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
        <property name="text">
         <string>起始：</string>
        </property>
@@ -106,22 +107,6 @@
         </size>
        </property>
       </widget>
-     </item>
-     <item>
-      <spacer name="hSpacer12">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Fixed</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>62</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
      </item>
     </layout>
    </item>
@@ -234,6 +219,20 @@
    </item>
    <item>
     <widget class="QTextBrowser" name="mytextBrowser"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_qq">
+     <property name="text">
+      <string>酷世DIY 开源STM32交流QQ群 554150925</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_tb">
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

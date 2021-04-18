@@ -1,0 +1,51 @@
+"""
+ Flash OS Routines (Automagically Generated)
+ Copyright (c) 2017-2017 ARM Limited
+"""
+
+flash_algo = {
+    'load_address' : 0x20000000,
+    'instructions' : [
+        0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,
+        0x8F4FF3BF, 0x46014770, 0x02890280, 0x0EC90E00, 0xD3022824, 0x300C4608, 0x28204770, 0x0700D303,
+        0x300C0F00, 0x28084770, 0x1D08D301, 0x28044770, 0x2004D3FC, 0x48454770, 0x60414943, 0x60414944,
+        0x60012100, 0x22F068C1, 0x60C14311, 0x06806940, 0x4841D406, 0x6001493F, 0x60412106, 0x6081493F,
+        0x47702000, 0x69014839, 0x43110542, 0x20006101, 0xB5104770, 0x69014835, 0x43212404, 0x69016101,
+        0x431103A2, 0x49366101, 0xE0004A33, 0x68C36011, 0xD4FB03DB, 0x43A16901, 0x20006101, 0xB530BD10,
+        0xFFB1F7FF, 0x68CA4929, 0x431A23F0, 0x240260CA, 0x690A610C, 0x0E0006C0, 0x610A4302, 0x03E26908,
+        0x61084310, 0x4A244826, 0x6010E000, 0x03ED68CD, 0x6908D4FB, 0x610843A0, 0x060068C8, 0xD0030F00,
+        0x431868C8, 0x200160C8, 0xB5F0BD30, 0x1CC94D17, 0x68EB0889, 0x27F00089, 0x60EB433B, 0x612B2300,
+        0xE01D4C17, 0x4E17692B, 0x612B4333, 0x60036813, 0x8F4FF3BF, 0xE0004B10, 0x68EE601C, 0xD4FB03F6,
+        0x085B692B, 0x612B005B, 0x061B68EB, 0xD0040F1B, 0x433868E8, 0x200160E8, 0x1D00BDF0, 0x1D121F09,
+        0xD1DF2900, 0xBDF02000, 0x45670123, 0x40023C00, 0xCDEF89AB, 0x00005555, 0x40003000, 0x00000FFF,
+        0x0000AAAA, 0x00000201, 0x00000000
+    ],
+
+    'pc_Init'            : 0x20000057,
+    'pc_UnInit'          : 0x20000085,
+    'pc_EraseSector'     : 0x200000BF,
+    'pc_ProgramPage'     : 0x2000010B,
+    'pc_Verify'          : 0x12000001F,
+    'pc_EraseChip'       : 0x20000093,
+    'pc_BlankCheck'      : 0x12000001F,
+    'pc_Read'            : 0x12000001F,
+    
+    'static_base'        : 0x20000400,
+    'begin_data'         : 0x20000800,
+    'begin_stack'        : 0x20000C00,
+
+    'analyzer_supported' : False,
+
+    # Relative region addresses and sizes
+    'ro_start'           : 0x00000000,
+    'ro_size'            : 0x00000168,
+    'rw_start'           : 0x00000168,
+    'rw_size'            : 0x00000004,
+    'zi_start'           : 0x0000016C,
+    'zi_size'            : 0x00000000,
+
+    # Flash information
+    'flash_start'        : 0x08000000,
+    'flash_size'         : 0x00100000,
+    'flash_page_size'    : 0x00000200,
+}

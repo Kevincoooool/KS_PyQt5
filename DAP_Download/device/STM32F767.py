@@ -1,31 +1,43 @@
-import time
-
 from . import globalvar
 from .flash import Flash
-
-class STM32F030F4(object):
-    CHIP_CORE = 'Cortex-M0'
+import time
+import datetime
+class STM32F767VI(object):
+    CHIP_CORE = 'Cortex-M7'
 
     PAGE_SIZE = 1024 * 1
-    SECT_SIZE = 1024 * 1
-    CHIP_SIZE = 1024 * 16
+    SECT_SIZE = 1024 * 16   # 前4个扇区16K、第5个扇区64K、后面的扇区128K
+    CHIP_SIZE = 1024 * 1024 *2
+
+    @classmethod
+    def addr2sect(cls, addr, size):
+        if   addr <  64*1024: sect = addr - (addr % ( 16*1024))
+        elif addr < 128*1024: sect = addr - (addr % ( 64*1024))
+        else:                 sect = addr - (addr % (128*1024))
+
+        while sect < addr+size:
+            yield sect
+
+            if   sect <  64*1024: sect +=  16*1024
+            elif sect < 128*1024: sect +=  64*1024
+            else:                 sect += 128*1024
 
     def __init__(self, dap):
-        super(STM32F030F4, self).__init__()
-
+        super(STM32F767VI, self).__init__()
+        
         self.dap = dap
 
-        self.flash = Flash(self.dap, STM32F030F4_flash_algo)
+        self.flash = Flash(self.dap, STM32F767VI_flash_algo)
 
     def sect_erase(self, addr, size):
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', '开始擦除')
         time_start = int(round(time.time() * 1000))
         self.flash.Init(0, 0, 1)
-        for i in range(addr // self.SECT_SIZE, (addr + size + (self.SECT_SIZE - 1)) // self.SECT_SIZE):
-            self.flash.EraseSector(self.SECT_SIZE * i)
-            progress = (int)(self.SECT_SIZE * i / size * 100)
-            globalvar.set_value('progress', progress)
+        for addr in self.addr2sect(addr, size):
+            self.flash.EraseSector(addr)
+            # progress = (int)(self.SECT_SIZE * i / size * 100)
+            # globalvar.set_value('progress', progress)
 
         time_finish = int(round(time.time() * 1000))
         self.flash.UnInit(1)
@@ -75,47 +87,48 @@ class STM32F030F4(object):
         buff.extend(data)
 
 
-STM32F030F4_flash_algo = {
+STM32F767VI_flash_algo = {
     'load_address': 0x20000000,
     'instructions': [
         0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,
-        0x49454846, 0x49466041, 0x21006041, 0x68C16001, 0x43112214, 0x69C060C1, 0xD4060740, 0x49414842,
-        0x21066001, 0x49416041, 0x20006081, 0x483B4770, 0x22806901, 0x61014311, 0x47702000, 0x4837B530,
-        0x241468C1, 0x60C14321, 0x25046901, 0x61014329, 0x22406901, 0x61014311, 0x4A334935, 0x6011E000,
-        0x07DB68C3, 0x6901D1FB, 0x610143A9, 0x422168C1, 0x68C1D004, 0x60C14321, 0xBD302001, 0xBD302000,
-        0x4926B530, 0x231468CA, 0x60CA431A, 0x2402690A, 0x610A4322, 0x69086148, 0x43102240, 0x48246108,
-        0xE0004A21, 0x68CD6010, 0xD1FB07ED, 0x43A06908, 0x68C86108, 0xD0034018, 0x431868C8, 0x200160C8,
-        0xB5F0BD30, 0x1C494D15, 0x68EB0849, 0x24040049, 0x60EB4323, 0x4C162714, 0x692BE01A, 0x43332601,
-        0x8813612B, 0x4B108003, 0x601CE000, 0x07F668EE, 0x692BD1FB, 0x005B085B, 0x68EB612B, 0xD004423B,
-        0x433868E8, 0x200160E8, 0x1C80BDF0, 0x1E891C92, 0xD1E22900, 0xBDF02000, 0x45670123, 0x40022000,
-        0xCDEF89AB, 0x00005555, 0x40003000, 0x00000FFF, 0x0000AAAA, 0x00000000
+        0x8F4FF3BF, 0x02004770, 0x283F0D00, 0x0980D302, 0x47701D00, 0x477008C0, 0x49444845, 0x49456041,
+        0x21006041, 0x68C16001, 0x431122F0, 0x694060C1, 0xD4060680, 0x49404841, 0x21066001, 0x49406041,
+        0x20006081, 0x483A4770, 0x05426901, 0x61014311, 0x47702000, 0x4836B510, 0x24046901, 0x61014321,
+        0x03A26901, 0x61014311, 0x4A344936, 0x6011E000, 0x03DB68C3, 0x6901D4FB, 0x610143A1, 0xBD102000,
+        0xF7FFB530, 0x492AFFC0, 0x23F068CA, 0x60CA431A, 0x610C2402, 0x06C0690A, 0x43020E00, 0x6908610A,
+        0x431003E2, 0x48276108, 0xE0004A24, 0x68CD6010, 0xD4FB03ED, 0x43A06908, 0x68C86108, 0x0F000600,
+        0x68C8D003, 0x60C84318, 0xBD302001, 0x4D18B5F0, 0x08891CC9, 0x008968EB, 0x433B27F0, 0x230060EB,
+        0x4C18612B, 0x692BE01D, 0x43334E17, 0x6813612B, 0xF3BF6003, 0x4B118F4F, 0x601CE000, 0x03F668EE,
+        0x692BD4FB, 0x005B085B, 0x68EB612B, 0x0F1B061B, 0x68E8D004, 0x60E84338, 0xBDF02001, 0x1F091D00,
+        0x29001D12, 0x2000D1DF, 0x0000BDF0, 0x45670123, 0x40023C00, 0xCDEF89AB, 0x00005555, 0x40003000,
+        0x00000FFF, 0x0000AAAA, 0x00000201, 0x00000000
     ],
 
-    'pc_Init': 0x20000021,
-    'pc_UnInit': 0x2000004F,
+    'pc_Init': 0x20000039,
+    'pc_UnInit': 0x20000067,
     'pc_EraseSector': 0x200000A1,
-    'pc_ProgramPage': 0x200000E3,
+    'pc_ProgramPage': 0x200000ED,
     'pc_Verify': 0x12000001F,
-    'pc_EraseChip': 0x2000005D,
+    'pc_EraseChip': 0x20000075,
     'pc_BlankCheck': 0x12000001F,
     'pc_Read': 0x12000001F,
 
     'static_base': 0x20000400,
     'begin_data': 0x20000800,
-    'begin_stack': 0x20001000,
+    'begin_stack': 0x20000C00,
 
     'analyzer_supported': False,
 
     # Relative region addresses and sizes
     'ro_start': 0x00000000,
-    'ro_size': 0x00000134,
-    'rw_start': 0x00000134,
+    'ro_size': 0x0000014C,
+    'rw_start': 0x0000014C,
     'rw_size': 0x00000004,
-    'zi_start': 0x00000138,
+    'zi_start': 0x00000150,
     'zi_size': 0x00000000,
 
     # Flash information
     'flash_start': 0x08000000,
-    'flash_size': 0x00004000,
-    'flash_page_size': 0x00000400,
+    'flash_size': 0x00200000,
+    'flash_page_size': 0x00000200,
 }

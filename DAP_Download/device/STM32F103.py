@@ -1,6 +1,6 @@
 import time
 
-from PyQt5.QtCore import QThread, pyqtSignal
+
 from . import globalvar
 from .flash import Flash
 
@@ -52,8 +52,9 @@ class STM32F103C8(object):
         time_start = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录中...")
+        flash_start = globalvar.get_value('addr')
         for i in range(len(data) // self.PAGE_SIZE):
-            self.flash.ProgramPage(0x08000000 + addr + self.PAGE_SIZE * i,
+            self.flash.ProgramPage(flash_start + addr + self.PAGE_SIZE * i,
                                    data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])
             progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
             globalvar.set_value('progress', progress)
@@ -70,7 +71,8 @@ class STM32F103C8(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        data = self.dap.read_memory_block8(0x08000000 + addr, size)
+        flash_start = globalvar.get_value('addr')
+        data = self.dap.read_memory_block8(flash_start + addr, size)
 
         buff.extend(data)
 

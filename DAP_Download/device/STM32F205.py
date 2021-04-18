@@ -1,3 +1,5 @@
+import time
+
 from . import globalvar
 from .flash import Flash
 
@@ -17,32 +19,59 @@ class STM32F205RE(object):
         self.flash = Flash(self.dap, STM32F205RE_flash_algo)
 
     def sect_erase(self, addr, size):
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '开始擦除')
+        time_start = int(round(time.time() * 1000))
         self.flash.Init(0, 0, 1)
         for i in range(addr // self.SECT_SIZE, (addr + size + (self.SECT_SIZE - 1)) // self.SECT_SIZE):
             self.flash.EraseSector(self.SECT_SIZE * i)
+            progress = (int)(self.SECT_SIZE * i / size * 100)
+            globalvar.set_value('progress', progress)
+
+        time_finish = int(round(time.time() * 1000))
         self.flash.UnInit(1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', '擦除成功')
+        time.sleep(0.1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
 
     def chip_write(self, addr, data):
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', '开始擦除')
+        time_start = int(round(time.time() * 1000))
         self.sect_erase(addr, len(data))
+        time_finish = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "擦除成功")
+        time.sleep(0.1)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
         self.flash.Init(0, 0, 2)
+        time_start = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录中...")
+        flash_start = globalvar.get_value('addr')
         for i in range(len(data) // self.PAGE_SIZE):
-            self.flash.ProgramPage(0x08000000 + addr + self.PAGE_SIZE * i,
+            self.flash.ProgramPage(flash_start + addr + self.PAGE_SIZE * i,
                                    data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])
             progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
             globalvar.set_value('progress', progress)
-
+        time_finish = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录完成！！")
+        time.sleep(0.01)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "耗时：" + str((time_finish - time_start) / 1000) + "  S")
+        time.sleep(0.01)
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "烧录速度：" + str(len(data) / (time_finish - time_start)) + "  KB/s")
+
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        data = self.dap.read_memory_block8(0x08000000 + addr, size)
+        flash_start = globalvar.get_value('addr')
+        data = self.dap.read_memory_block8(flash_start + addr, size)
 
         buff.extend(data)
 
