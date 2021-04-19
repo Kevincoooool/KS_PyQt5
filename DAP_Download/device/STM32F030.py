@@ -12,11 +12,11 @@ class STM32F030F4(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 16
 
-    def __init__(self, dap,jlink):
-        super(STM32F030F4, self).__init__()
+    def __init__(self, jlink):
+        super(STM32F030F4, self).__init__(jlink)
 
         if globalvar.get_value('dap_or_jlink'):
-            self.dap = dap
+            self.dap = jlink
             self.flash = Flash_DAP(self.dap, STM32F030F4_flash_algo)
         else:
             self.jlink = jlink

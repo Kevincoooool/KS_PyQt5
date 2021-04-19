@@ -26,13 +26,14 @@ class STM32F405RG(object):
             elif sect < 128*1024: sect +=  64*1024
             else:                 sect += 128*1024
 
-    def __init__(self, dap,jlink):
-        super(STM32F405RG, self).__init__()
+    def __init__(self, jlink):
 
         if globalvar.get_value('dap_or_jlink'):
-            self.dap = dap
+            super(STM32F405RG, self).__init__()
+            self.dap = jlink
             self.flash = Flash_DAP(self.dap, STM32F405RG_flash_algo)
         else:
+            super(STM32F405RG, self).__init__()
             self.jlink = jlink
             self.flash = Flash_JLINK(self.jlink, STM32F405RG_flash_algo)
 
@@ -43,8 +44,8 @@ class STM32F405RG(object):
         self.flash.Init(0, 0, 1)
         for addr in self.addr2sect(addr, size):
             self.flash.EraseSector(addr)
-            # progress = (int)(self.SECT_SIZE * i / size * 100)
-            # globalvar.set_value('progress', progress)
+            progress = (int)(addr / size * 100)
+            globalvar.set_value('progress', progress)
 
         time_finish = int(round(time.time() * 1000))
         self.flash.UnInit(1)
@@ -52,7 +53,7 @@ class STM32F405RG(object):
         globalvar.set_value('info', '擦除成功')
         time.sleep(0.1)
         globalvar.set_value('flag', 1)
-        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
+        globalvar.set_value('info', "擦除耗时1：" + str((time_finish - time_start) / 1000) + "  S")
 
     def chip_write(self, addr, data):
         globalvar.set_value('flag', 1)
@@ -64,12 +65,15 @@ class STM32F405RG(object):
         globalvar.set_value('info', "擦除成功")
         time.sleep(0.1)
         globalvar.set_value('flag', 1)
-        globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
+        globalvar.set_value('info', "擦除耗时2：" + str((time_finish - time_start) / 1000) + "  S")
         self.flash.Init(0, 0, 2)
+
+        time.sleep(0.1)
         time_start = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录中...")
         flash_start = globalvar.get_value('addr')
+        print(flash_start)
         for i in range(len(data) // self.PAGE_SIZE):
             self.flash.ProgramPage(flash_start + addr + self.PAGE_SIZE * i,
                                    data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])

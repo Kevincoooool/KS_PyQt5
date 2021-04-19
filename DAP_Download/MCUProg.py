@@ -71,7 +71,7 @@ class MCUProg(QWidget):
         self.hLayout_dll.setEnabled(False)
         self.radioButton_DAP.toggled.connect(lambda: self.btnstate(self.radioButton_DAP))
         self.radioButton_JLINK.toggled.connect(lambda: self.btnstate(self.radioButton_JLINK))
-        globalvar.set_value('addr', 0x08000000)
+        #globalvar.set_value('addr', 0x08000000)
         globalvar.set_value('dap_or_jlink', 1)
         self.Address_Edit.textEdited[str].connect(lambda: self.onChange())
         self.label_qq.setText(
@@ -87,6 +87,7 @@ class MCUProg(QWidget):
         globalvar.set_value('addr', Address)
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录地址已设置为:" + Address)
+        self.conf.set('globals', 'start_addr', Address)
         print("addr:", Address)
 
     def btnstate(self, btn):
@@ -96,7 +97,9 @@ class MCUProg(QWidget):
                 print(btn.text() + " is selected")
                 self.hLayout_dap.setEnabled(True)
                 self.hLayout_dll.setEnabled(False)
+
                 globalvar.set_value('dap_or_jlink', 1)
+
                 print(globalvar.get_value('dap_or_jlink'))
             else:
                 print(btn.text() + " is deselected")
@@ -104,7 +107,6 @@ class MCUProg(QWidget):
                 self.hLayout_dll.setEnabled(True)
                 globalvar.set_value('dap_or_jlink', 0)
                 print(globalvar.get_value('dap_or_jlink'))
-
 
         if btn.text() == "JLINK":
             if btn.isChecked() == True:
@@ -136,14 +138,18 @@ class MCUProg(QWidget):
         if not self.conf.has_section('globals'):
             self.conf.add_section('globals')
             self.conf.set('globals', 'mcu', 'STM32F103C8')
+            self.conf.set('globals', 'dap_or_jlink', True)
             self.conf.set('globals', 'addr', '0 K')
             self.conf.set('globals', 'size', '64 K')
             self.conf.set('globals', 'hexpath', '[]')
+            self.conf.set('globals', 'start_addr', '0x08000000')
 
         self.cmbMCU.addItems(device.Devices.keys())
         self.cmbMCU.setCurrentIndex(self.cmbMCU.findText(self.conf.get('globals', 'mcu')))
         self.linDLL.setText(self.conf.get('globals', 'dllpath'))
         self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
+        self.Address_Edit.setText(self.conf.get('globals', 'start_addr'))
+        globalvar.set_value('addr', eval((self.conf.get('globals', 'start_addr'))))
 
     @pyqtSlot()
     def on_btnDLL_clicked(self):
@@ -167,12 +173,12 @@ class MCUProg(QWidget):
             self.dap.reset()
             self.daplink.close()
 
-        QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
+        #QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
         self.setEnabled(True)
 
     @pyqtSlot()
     def on_btnWrite_clicked(self):
-        self.mytextBrowser.clear()
+        #self.mytextBrowser.clear()
         self.progressBar.setVisible(True)
         if self.cmbHEX.currentText().endswith('.hex'):
             data = parseHex(self.cmbHEX.currentText())
@@ -204,7 +210,7 @@ class MCUProg(QWidget):
         self.setEnabled(True)
         self.btnWrite.setEnabled(True)
         self.progressBar.setValue(100)
-        QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
+        #QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
@@ -299,6 +305,7 @@ class MCUProg(QWidget):
         self.conf.set('globals', 'mcu', self.cmbMCU.currentText())
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
+        self.conf.set('globals', 'start_addr', self.Address_Edit.text())
         self.conf.set('globals', 'dllpath', self.linDLL.text())
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]

@@ -1,5 +1,7 @@
 import time
 
+import jlink
+from pyocd.coresight import dap
 
 from . import globalvar
 from .flash_dap import Flash_DAP
@@ -12,16 +14,24 @@ class STM32F103C8(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 64
 
-    def __init__(self, dap,jlink):
+    def __init__(self, dap):
         super(STM32F103C8, self).__init__()
         if globalvar.get_value('dap_or_jlink'):
             self.dap = dap
             self.flash = Flash_DAP(self.dap, STM32F103C8_flash_algo)
         else:
-            self.jlink = jlink
+            self.jlink = dap
             self.flash = Flash_JLINK(self.jlink, STM32F103C8_flash_algo)
-
+        # if self.radioButton_JLINK.isChecked():
+        #     self.jlink = dap
+        #     self.flash = Flash_JLINK(self.jlink, STM32F103C8_flash_algo)
+        # elif self.radioButton_DAP.isChecked():
+        #     self.dap = dap
+        #     self.flash = Flash_DAP(self.dap, STM32F103C8_flash_algo)
     def sect_erase(self, addr, size):
+
+
+
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', '开始擦除')
         time_start = int(round(time.time() * 1000))
@@ -40,6 +50,7 @@ class STM32F103C8(object):
         globalvar.set_value('info', "擦除耗时：" + str((time_finish - time_start) / 1000) + "  S")
 
     def chip_write(self, addr, data):
+
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', '开始擦除')
         time_start = int(round(time.time() * 1000))
@@ -87,13 +98,15 @@ class STM32F103RC(STM32F103C8):
     SECT_SIZE = 1024 * 2
     CHIP_SIZE = 1024 * 256
 
-    def __init__(self, dap,jlink):
-        super(STM32F103RC, self).__init__()
+    def __init__(self, jlink):
 
         if globalvar.get_value('dap_or_jlink'):
-            self.dap = dap
+            super(STM32F103RC, self).__init__(jlink)
+
+            self.dap = jlink
             self.flash = Flash_DAP(self.dap, STM32F103RC_flash_algo)
         else:
+            super(STM32F103RC, self).__init__(jlink)
             self.jlink = jlink
             self.flash = Flash_JLINK(self.jlink, STM32F103RC_flash_algo)
 

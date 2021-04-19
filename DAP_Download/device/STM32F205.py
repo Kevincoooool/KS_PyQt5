@@ -12,11 +12,11 @@ class STM32F205RE(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 256
 
-    def __init__(self, dap,jlink):
+    def __init__(self, jlink):
         super(STM32F205RE, self).__init__()
 
         if globalvar.get_value('dap_or_jlink'):
-            self.dap = dap
+            self.dap = jlink
             self.flash = Flash_DAP(self.dap, STM32F205RE_flash_algo)
         else:
             self.jlink = jlink
