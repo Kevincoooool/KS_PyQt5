@@ -79,7 +79,7 @@ class MCUProg(QWidget):
         self.label_qq.setOpenExternalLinks(True)
 
         self.label_tb.setText(
-            u'<a href="https://shop110563242.taobao.com/?spm=2013.1.1000126.d21.40b7550eFERD4b" style="color:#0000ff;"><b> 酷世DIY 高速DAPLink 脱机下载器 迷你Jlink V9 OpenMV </b></a>')
+            u'<a href="https://shop110563242.taobao.com/"><b> 酷世DIY 高速DAPLink 脱机下载器 迷你Jlink V9 OpenMV </b></a>')
         self.label_tb.setOpenExternalLinks(True)
 
     def onChange(self):
@@ -161,14 +161,15 @@ class MCUProg(QWidget):
     @pyqtSlot()
     def on_btnErase_clicked(self):
         self.mytextBrowser.clear()
-        self.dap = self.openDAP()
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
-        self.setEnabled(False)
+
         if self.radioButton_JLINK.isChecked():
             self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
             self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
             self.dev.sect_erase(self.addr, self.size)
         elif self.radioButton_DAP.isChecked() == True:
+            self.dap = self.openDAP()
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.dap)
+            self.setEnabled(False)
             self.dev.sect_erase(self.addr, self.size)
             self.dap.reset()
             self.daplink.close()

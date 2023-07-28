@@ -71,6 +71,8 @@ class STM32F103C8(object):
                                    data[self.PAGE_SIZE * i: self.PAGE_SIZE * (i + 1)])
             progress = (int)(self.PAGE_SIZE * i / len(data) * 100)
             globalvar.set_value('progress', progress)
+        if progress < 100:
+            globalvar.set_value('progress', 100)
         time_finish = int(round(time.time() * 1000))
         globalvar.set_value('flag', 1)
         globalvar.set_value('info', "烧录完成！！")
@@ -85,12 +87,16 @@ class STM32F103C8(object):
 
     def chip_read(self, addr, size, buff):
         flash_start = globalvar.get_value('addr')
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "读取中...")
         if globalvar.get_value('dap_or_jlink'):
             data = self.dap.read_memory_block8(flash_start + addr, size)
             buff.extend(data)
         else:
             c_char_Array = self.jlink.read_mem(flash_start + addr, size)
             buff.extend(list(bytes(c_char_Array)))
+        globalvar.set_value('flag', 1)
+        globalvar.set_value('info', "读取完成！请选择文件夹保存bin文件")
 
 
 class STM32F103RC(STM32F103C8):
